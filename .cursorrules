@@ -1,0 +1,63 @@
+# MagicSquare_XX — Cursor Rules (초안)
+
+## 프로젝트 한 줄
+4×4 부분 마방진: 빈칸 `0` 정확히 2개, 값 1~16, 10선 합 = 마방진 상수 **34**. Solver/판정은 ECB + Dual-Track TDD로 구현한다.
+
+## 도메인 (불변)
+- 격자: 4×4 정수 배열. `0`(빈칸)은 **정확히 2개**.
+- 채울 값: **1~16** (완성 시 중복 없음).
+- 마방진 상수: **34** — `MagicConstant` SSOT만 사용. `34`, `16` 리터럴 코드·테스트에 산재 금지.
+- Solver 성공 출력: `int[6]` = `[r1, c1, n1, r2, c2, n2]`. **좌표는 1-index** (행·열 1~4).
+- 10선: `row:0..3`, `col:0..3`, `diag:main`, `diag:anti`.
+
+## 오류 코드 (boundary 전담)
+| 코드 | boundary | entity |
+|------|----------|--------|
+| E001~E005 | 처리·변환·노출 | **처리 금지** (입력 검증은 boundary) |
+| E006~E007 | 처리·노출 | entity/control 도메인 규칙만 |
+
+entity/control은 E001~E005를 catch·매핑·메시지화하지 않는다. 잘못된 입력은 boundary에서 차단한다.
+
+## ECB 아키텍처
+```
+boundary → control → entity
+```
+- **의존 방향:** boundary가 control 호출, control이 entity 호출. 역방향 금지.
+- **entity → *** import 금지** (entity는 최하위; control/boundary/os/stdlib 의존 없음).
+- control: 유스케이스 조율. entity 순수 도메인만 조합.
+- boundary: 입출력·CLI·포맷·E001~E007 변환.
+
+## Dual-Track 테스트
+| Track | 대상 | Mock |
+|-------|------|------|
+| **Logic** | entity, control | **Domain Mock 금지** (실 객체·실 규칙) |
+| **UI** | boundary | Mock **허용** (control/IO stub) |
+
+- 테스트 ID: Logic **`D-*`**, UI **`U-*`**.
+- 파일명: `test_d_*.py` (tests/entity, tests/control), `test_u_*.py` (tests/boundary).
+- pytest: `pythonpath = ["src"]`, 레이어 디렉터리 유지.
+
+## TDD 규율
+1. **RED** — 실패하는 테스트 먼저 (assert는 요구사항 그대로).
+2. **GREEN** — 최소 구현으로 통과.
+3. **REFACTOR** — Green 유지하며 정리.
+
+**금지:** assert 완화, `@pytest.mark.skip`, `xfail`, 테스트 삭제로 Green 만들기.
+요구 변경은 Report/PRD 갱신 후 테스트부터 수정.
+
+## AI 작업 선언 (매 TDD 사이클)
+작업 시작 시 한 줄로 선언:
+`Phase: RED|GREEN|REFACTOR | Layer: entity|control|boundary | Track: Logic|UI`
+예: `Phase: RED | Layer: entity | Track: Logic — D-01 빈칸 2개 규칙`
+
+## AI 행동
+- **한국어**로 설명·주석·커밋 메시지(요청 시).
+- **최소 diff:** 요청 범위 밖 리팩터·파일 생성 금지.
+- **git commit/push:** 사용자가 명시적으로 요청할 때만.
+- 근거: `docs/PRD.md`, `Report/01.*`, `Report/02.*` (있을 경우).
+
+## 디렉터리
+```
+src/entity/   src/control/   src/boundary/
+tests/entity/ tests/control/ tests/boundary/
+```
