@@ -8,6 +8,7 @@ Thumbs.db
 # Python (future)
 __pycache__/
 *.py[cod]
+*.egg-info/
 .venv/
 venv/
 .env
